@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(biossensor biossensor.c )
+add_executable(biossensor biossensor.c lib/ssd1306.c)
 
 pico_set_program_name(biossensor "biossensor")
 pico_set_program_version(biossensor "0.1")
@@ -48,6 +48,7 @@ pico_enable_stdio_usb(biossensor 0)
 target_link_libraries(biossensor
         hardware_adc
         hardware_i2c
+        hardware_pwm
         pico_stdlib)
 
 # Add the standard include files to the build
