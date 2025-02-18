@@ -84,9 +84,14 @@ void glicose_alerta(int glicose){
     if (glicose < 80) {
         ssd1306_draw_string(&ssd, "ALERTA:", 10, 40);
         ssd1306_draw_string(&ssd, "Baixa Glicose!", 10, 50);
-    } else if (glicose > 140) {
+    } else if (glicose >= 80 && glicose <= 140) {
+            ssd1306_draw_string(&ssd, "Nivel Normal", 10, 40); 
+    } else if (glicose >= 140 && glicose <= 199) {
+        ssd1306_draw_string(&ssd, "ATENCAO:", 10, 40);
+        ssd1306_draw_string(&ssd, "Pre-Diabetes!", 10, 50);
+    } else if (glicose >= 200) {
         ssd1306_draw_string(&ssd, "ALERTA:", 10, 40);
-        ssd1306_draw_string(&ssd, "Alta Glicose!", 10, 50);
+        ssd1306_draw_string(&ssd, "Diabetes!", 10, 50);
     }
 }
 
