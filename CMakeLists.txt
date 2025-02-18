@@ -41,8 +41,8 @@ pico_set_program_name(biossensor "biossensor")
 pico_set_program_version(biossensor "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(biossensor 0)
-pico_enable_stdio_usb(biossensor 0)
+pico_enable_stdio_uart(biossensor 1)
+pico_enable_stdio_usb(biossensor 1)
 
 # Add the standard library to the build
 target_link_libraries(biossensor
