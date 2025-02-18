@@ -173,6 +173,12 @@ void ssd1306_draw_char(ssd1306_t *ssd, char c, uint8_t x, uint8_t y) {
   else if (c == '/') {
       index = 64 * 8;  // Índice correto do '/'
   } 
+  else if (c == '(') {
+      index = 65 * 8;  // Índice correto do '('
+  }
+  else if (c == ')') {
+      index = 66 * 8;  // Índice correto do ')'
+  }
   else {
       return;  // Se o caractere não for suportado, não desenha nada
   }
