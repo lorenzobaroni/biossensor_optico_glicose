@@ -16,6 +16,7 @@
 #define LED_RED 13
 #define LED_GREEN 11
 #define LED_BLUE 12
+#define BUZZER 21
 
 #define PWM_FREQ 50
 #define PWM_WRAP 4095
@@ -36,6 +37,20 @@ uint16_t filtrar_adc() {
     return soma / NUM_AMOSTRAS;
 }
 
+// Função para gerar tons no buzzer
+void tone(uint buzzer, uint frequencia, uint duracao) {
+    uint32_t periodo = 1000000 / frequencia; 
+    uint32_t meio_periodo = periodo / 2;    
+    uint32_t ciclos = frequencia * duracao / 1000;
+
+    for (uint32_t i = 0; i < ciclos; i++) {
+        gpio_put(buzzer, 1); 
+        sleep_us(meio_periodo);
+        gpio_put(buzzer, 0); 
+        sleep_us(meio_periodo);
+    }
+}
+
 void setup_config(){ 
     i2c_init(I2C_PORT, 400 * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
@@ -51,6 +66,10 @@ void setup_config(){
     adc_init();  
     adc_gpio_init(BIOSSENSOR_OPTICO); 
     adc_select_input(0);
+
+    gpio_init(BUZZER);
+    gpio_set_dir(BUZZER, GPIO_OUT);
+    gpio_put(BUZZER, 0);
 }
 
 void setup_pwm(uint pin) {
@@ -78,7 +97,7 @@ int main() {
     setup_pwm(LED_RED);
     setup_pwm(LED_GREEN);
 
-    while (1) {
+    while (true) {
         uint16_t leitura_adc = filtrar_adc(); 
 
         // Calcula os valores de PWM para controle dos LEDs, dependendo da posição do joystick
@@ -92,6 +111,7 @@ int main() {
         } 
         else if (leitura_adc >= 4078 || leitura_adc <= 16) {
             set_led_brightness(LED_RED, PWM_WRAP);  // LED vermelho com brilho máximo
+            tone(BUZZER, 200, 500);
             set_led_brightness(LED_BLUE, 0);  // Desliga o LED azul
             set_led_brightness(LED_GREEN, 0);
         } 
@@ -99,7 +119,6 @@ int main() {
             set_led_brightness(LED_BLUE, 0);
             set_led_brightness(LED_RED, 0);
             set_led_brightness(LED_GREEN, 1000);
-
         }
         
         float tensao = (leitura_adc * 3.3) / 4095; 
