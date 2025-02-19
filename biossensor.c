@@ -33,8 +33,6 @@
 
 // Variáveis globais
 ssd1306_t ssd;
-bool led_enabled = true;
-bool border_style = true;
 int border_size = 2;
 
 PIO pio = pio0;
@@ -73,7 +71,7 @@ void set_matrix_color(uint32_t color) {
 
 void set_matrix_brightness(uint32_t color, uint16_t adc_value) {
     // Normaliza a leitura do ADC para um valor entre 0 e 255 (PWM simulado)
-    uint8_t intensidade = (adc_value * 20) / 4095;
+    uint8_t intensidade = (adc_value * 20) / 4095; // Intensidade dos leds
 
     // Extrai os componentes RGB da cor base
     uint8_t r = (color >> 16) & 0xFF;
@@ -207,14 +205,14 @@ void piscar_borda_com_buzzer_e_led(uint buzzer, uint led, uint frequencia, uint 
         // Desliga o LED vermelho, buzzer e a matriz de LEDs ao mesmo tempo
         set_led_brightness(led, 0);
         gpio_put(buzzer, 0);
-        set_matrix_color(0x000000);  // Apaga a matriz de LEDs
+        set_matrix_brightness(0, 0); // Apaga a matriz de LEDs
 
         // Pequeno atraso para sincronizar os ciclos corretamente
         sleep_ms(100);
     }
 }
 
-bool menu_inicial() {
+void menu_inicial() {
     ssd1306_fill(&ssd, false);
     ssd1306_draw_string(&ssd, "Jejum: 8h", 25, 10);
     ssd1306_draw_string(&ssd, "Sim (A)", 35, 30);
@@ -270,6 +268,48 @@ void desenhar_coracao() {
     }
 }
 
+void linhas_display(){
+    // Desenha uma linha horizontal no meio do display (altura = 32)
+    ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
+    ssd1306_draw_line(&ssd, 0, 33, WIDTH - 1, 33, true);
+    ssd1306_draw_line(&ssd, 90, 0, 90, HEIGHT / 2, true);
+    ssd1306_draw_line(&ssd, 91, 0, 91, HEIGHT / 2, true);
+}
+
+void leds_pre_diabetes(uint16_t leitura_adc){
+    set_led_brightness(LED_BLUE, 0);
+    set_led_brightness(LED_RED, leitura_adc);
+    set_led_brightness(LED_GREEN, leitura_adc);
+    set_matrix_brightness(YELLOW, leitura_adc);
+}
+
+void leds_atencao(int glicose_simulada){
+    set_led_brightness(LED_BLUE, 0);
+    set_led_brightness(LED_GREEN, 0);                               
+    // Sincroniza a borda, buzzer e LED vermelho piscando 2 vezes
+    piscar_borda_com_buzzer_e_led(BUZZER, LED_RED, 500, 250, 2, glicose_simulada);
+}
+
+void leds_nivel_normal(uint16_t leitura_adc){
+    set_led_brightness(LED_BLUE, 0);
+    set_led_brightness(LED_RED, 0);
+    set_led_brightness(LED_GREEN, leitura_adc);
+    set_matrix_brightness(GREEN, leitura_adc);
+}
+
+void texto_glicose(int glicose_simulada){
+    char buffer[32];
+    ssd1306_draw_string(&ssd, "Glicose: ", 10, 10);
+    sprintf(buffer, "%d mg/dL", glicose_simulada);
+    ssd1306_draw_string(&ssd, buffer, 10, 20);
+}
+
+void desenha_borda(){
+    for (int i = 0; i < border_size; i++) {
+        ssd1306_rect(&ssd, i, i, WIDTH - (2 * i), HEIGHT - (2 * i), true, false);
+    }
+}
+
 void setup_config(){ 
     i2c_init(I2C_PORT, 400 * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
@@ -312,7 +352,6 @@ void setup_config(){
 int main() {
     stdio_init_all(); 
     setup_config();
-    bool coracao_visivel = true;
 
     setup_pwm(LED_BLUE);
     setup_pwm(LED_RED);
@@ -337,119 +376,81 @@ int main() {
             int glicose_simulada;
             
             if (escolha_jejum) {
-                // 🔹 Modo Jejum (começa de 90 mg/dL)
-                glicose_simulada = (int)((tensao * (99.0 - 90.0) / 3.3) + 90);
+                // 🔹 Modo Jejum (começa de 97 mg/dL)
+                glicose_simulada = (int)((tensao * (130.0 - 60.0) / 3.3) + 60);
             } else {
-                // 🔹 Modo Normal (padrão)
+                // 🔹 Modo Normal ((começa de 139 mg/dL))
                 glicose_simulada = (int)((tensao * (201.0 - 70.0) / 3.3) + 70);
             }
 
             printf("ADC: %d | Tensão: %.2fV | Glicose Simulada: %d mg/dL\n", leitura_adc, tensao, glicose_simulada);
 
-            if(escolha_jejum){
-                glicose_simulada = (int)((tensao * (130.0 - 60.0) / 3.3) + 60);
-                // Calcula os valores de PWM para controle dos LEDs, dependendo da posição do joystick
-                uint16_t pwm_y = led_enabled ? abs(leitura_adc - 2048) : 0;
-                
+            // Se escolheu "Sim (A)" 
+            if(escolha_jejum){               
                 // Define o brilho do LED azul baseado na posição Y do joystick
                 if ((leitura_adc > 2180 && leitura_adc < 3870)) {
-                    set_led_brightness(LED_BLUE, 0);
-                    set_led_brightness(LED_RED, leitura_adc);
-                    set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_brightness(YELLOW, leitura_adc);
-                }
-                else if (leitura_adc >= 3870 || leitura_adc <= 575) {
-                    set_led_brightness(LED_BLUE, 0);
-                    set_led_brightness(LED_GREEN, 0);
-                    // Sincroniza a borda, buzzer e LED vermelho piscando 2 vezes
-                    piscar_borda_com_buzzer_e_led(BUZZER, LED_RED, 500, 250, 2, glicose_simulada);
-                }
-                            
-                else {
-                    set_led_brightness(LED_BLUE, 0);
-                    set_led_brightness(LED_RED, 0);
-                    set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_brightness(GREEN, leitura_adc);
+                    leds_pre_diabetes(leitura_adc);
+
+                } else if (leitura_adc >= 3870 || leitura_adc <= 575) {
+                    leds_atencao(glicose_simulada);
+
+                } else {     
+                    leds_nivel_normal(leitura_adc);
                 }
 
                 // Limpa a tela antes de exibir um novo valor
                 ssd1306_rect(&ssd, 10, 10, 115, 50, false, true); // Limpa apenas a área do texto
 
                 // Buffer para armazenar o texto
-                char buffer[32];
-                ssd1306_draw_string(&ssd, "Glicose: ", 10, 10);
-                sprintf(buffer, "%d mg/dL", glicose_simulada);
-                ssd1306_draw_string(&ssd, buffer, 10, 20);
-
-                // Desenha uma linha horizontal no meio do display (altura = 32)
-                ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
+                texto_glicose(glicose_simulada);
 
                 desenhar_coracao();
 
-                // Desenha uma linha horizontal no meio do display (altura = 32)
-                ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
-                ssd1306_draw_line(&ssd, 0, 33, WIDTH - 1, 33, true);
-                ssd1306_draw_line(&ssd, 90, 0, 90, HEIGHT / 2, true);
-                ssd1306_draw_line(&ssd, 91, 0, 91, HEIGHT / 2, true);
+                linhas_display();
 
                 // Chama o alerta adequado
                 glicose_alerta_jejum(glicose_simulada);
 
                 // Desenha a borda da tela, com tamanho alternável
-                for (int i = 0; i < border_size; i++) {
-                    ssd1306_rect(&ssd, i, i, WIDTH - (2 * i), HEIGHT - (2 * i), true, false);
-                }
+                desenha_borda();
                 
                 ssd1306_send_data(&ssd);
 
                 sleep_ms(50);
 
-            } else { // Se escolheu "Não (B)"               
-                glicose_simulada = (int)((tensao * (201.0 - 70.0) / 3.3) + 70);
-                // Calcula os valores de PWM para controle dos LEDs, dependendo da posição do joystick
-                uint16_t pwm_y = led_enabled ? abs(leitura_adc - 2048) : 0;
-                
+            } 
+            // Se escolheu "Não (B)" 
+            else {                               
                 // Define o brilho do LED azul baseado na posição Y do joystick
                 if ((leitura_adc > 2180 && leitura_adc < 4078)) {
-                    set_led_brightness(LED_BLUE, 0);
-                    set_led_brightness(LED_RED, leitura_adc);
-                    set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_brightness(YELLOW, leitura_adc);
-                } 
-                else if (leitura_adc >= 4078 || leitura_adc <= 16) {
-                    set_led_brightness(LED_BLUE, 0);
-                    set_led_brightness(LED_GREEN, 0);                               
-                    // Sincroniza a borda, buzzer e LED vermelho piscando 2 vezes
-                    piscar_borda_com_buzzer_e_led(BUZZER, LED_RED, 500, 250, 2, glicose_simulada);
-                }                                         
-                else {
-                    set_led_brightness(LED_BLUE, 0);
-                    set_led_brightness(LED_RED, 0);
-                    set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_brightness(GREEN, leitura_adc);
+                    leds_pre_diabetes(leitura_adc);
+
+                } else if (leitura_adc >= 4078 || leitura_adc <= 16) {
+                    leds_atencao(glicose_simulada);
+
+                } else {
+                    leds_nivel_normal(leitura_adc); 
                 }
                 
                 // Limpa a tela antes de exibir um novo valor
                 ssd1306_rect(&ssd, 10, 10, 115, 50, false, true); // Limpa apenas a área do texto
+
                 // Buffer para armazenar o texto
-                char buffer[32];
-                ssd1306_draw_string(&ssd, "Glicose: ", 10, 10);
-                sprintf(buffer, "%d mg/dL", glicose_simulada);
-                ssd1306_draw_string(&ssd, buffer, 10, 20);
+                texto_glicose(glicose_simulada);
 
                 desenhar_coracao();
 
-                // Desenha uma linha horizontal no meio do display (altura = 32)
-                ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
-                ssd1306_draw_line(&ssd, 0, 33, WIDTH - 1, 33, true);
-                ssd1306_draw_line(&ssd, 90, 0, 90, HEIGHT / 2, true);
-                ssd1306_draw_line(&ssd, 91, 0, 91, HEIGHT / 2, true);
+                linhas_display();
 
+                // Chama o alerta adequado
                 glicose_alerta(glicose_simulada);
-                for (int i = 0; i < border_size; i++) {
-                    ssd1306_rect(&ssd, i, i, WIDTH - (2 * i), HEIGHT - (2 * i), true, false);
-                }
+
+                // Desenha a borda da tela, com tamanho alternável
+                desenha_borda();
+
                 ssd1306_send_data(&ssd);
+
+                sleep_ms(50);
             }
         }
     }
