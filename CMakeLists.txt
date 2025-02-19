@@ -37,6 +37,9 @@ pico_sdk_init()
 
 add_executable(biossensor biossensor.c lib/ssd1306.c)
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lib)
+pico_generate_pio_header(biossensor ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
+
 pico_set_program_name(biossensor "biossensor")
 pico_set_program_version(biossensor "0.1")
 
@@ -49,6 +52,7 @@ target_link_libraries(biossensor
         hardware_adc
         hardware_i2c
         hardware_pwm
+        hardware_pio
         pico_stdlib)
 
 # Add the standard include files to the build
