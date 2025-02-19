@@ -243,6 +243,33 @@ void botao_callback(uint gpio, uint32_t eventos) {
     }
 }
 
+void desenhar_coracao() {
+    int x = WIDTH - 25;  // Posição X no canto superior direito
+    int y = 12;           // Posição Y na parte superior
+
+    // Matriz do coração (10x9 pixels) - 1 = pixel ligado, 0 = pixel apagado
+    const uint8_t coracao[11][12] = {
+        { 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0 },  
+        { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },  
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  
+        { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 },  
+        { 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 },  
+        { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0 },  
+        { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0 }   
+    };
+
+    // Desenha o coração no display
+    for (int i = 0; i < 11; i++) {
+        for (int j = 0; j < 12; j++) {
+            if (coracao[i][j]) {
+                ssd1306_pixel(&ssd, x + j, y + i, true);
+            }
+        }
+    }
+}
+
 void setup_config(){ 
     i2c_init(I2C_PORT, 400 * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
@@ -285,6 +312,7 @@ void setup_config(){
 int main() {
     stdio_init_all(); 
     setup_config();
+    bool coracao_visivel = true;
 
     setup_pwm(LED_BLUE);
     setup_pwm(LED_RED);
@@ -353,6 +381,17 @@ int main() {
                 sprintf(buffer, "%d mg/dL", glicose_simulada);
                 ssd1306_draw_string(&ssd, buffer, 10, 20);
 
+                // Desenha uma linha horizontal no meio do display (altura = 32)
+                ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
+
+                desenhar_coracao();
+
+                // Desenha uma linha horizontal no meio do display (altura = 32)
+                ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
+                ssd1306_draw_line(&ssd, 0, 33, WIDTH - 1, 33, true);
+                ssd1306_draw_line(&ssd, 90, 0, 90, HEIGHT / 2, true);
+                ssd1306_draw_line(&ssd, 91, 0, 91, HEIGHT / 2, true);
+
                 // Chama o alerta adequado
                 glicose_alerta_jejum(glicose_simulada);
 
@@ -364,8 +403,8 @@ int main() {
                 ssd1306_send_data(&ssd);
 
                 sleep_ms(50);
-            } else {
-                // Se escolheu "Não (B)", esse espaço fica reservado para o novo programa
+
+            } else { // Se escolheu "Não (B)"               
                 glicose_simulada = (int)((tensao * (201.0 - 70.0) / 3.3) + 70);
                 // Calcula os valores de PWM para controle dos LEDs, dependendo da posição do joystick
                 uint16_t pwm_y = led_enabled ? abs(leitura_adc - 2048) : 0;
@@ -397,6 +436,14 @@ int main() {
                 ssd1306_draw_string(&ssd, "Glicose: ", 10, 10);
                 sprintf(buffer, "%d mg/dL", glicose_simulada);
                 ssd1306_draw_string(&ssd, buffer, 10, 20);
+
+                desenhar_coracao();
+
+                // Desenha uma linha horizontal no meio do display (altura = 32)
+                ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
+                ssd1306_draw_line(&ssd, 0, 33, WIDTH - 1, 33, true);
+                ssd1306_draw_line(&ssd, 90, 0, 90, HEIGHT / 2, true);
+                ssd1306_draw_line(&ssd, 91, 0, 91, HEIGHT / 2, true);
 
                 glicose_alerta(glicose_simulada);
                 for (int i = 0; i < border_size; i++) {

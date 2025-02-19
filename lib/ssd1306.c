@@ -229,3 +229,19 @@ void ssd1306_draw_string(ssd1306_t *ssd, const char *str, uint8_t x, uint8_t y)
     }
   }
 }
+
+void ssd1306_draw_line(ssd1306_t *ssd, uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, bool color) {
+  int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1; 
+  int err = dx + dy, e2;
+  
+  while (1) {
+      ssd1306_pixel(ssd, x0, y0, color);  // Desenha um pixel na posição
+      
+      if (x0 == x1 && y0 == y1) break;
+      e2 = 2 * err;
+      
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
