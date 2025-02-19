@@ -30,8 +30,6 @@
 
 #define NUM_AMOSTRAS 5  // Número de amostras para a média
 
-#define BRILHO 0.1  // Ajuste entre 0.0 (apagado) e 1.0 (brilho total)
-
 
 // Variáveis globais
 ssd1306_t ssd;
@@ -66,38 +64,39 @@ void ws2812_put_pixel(uint32_t pixel_grb) {
     pio_sm_put_blocking(pio, sm, pixel_grb << 8u);
 }
 
-// Função para reduzir brilho sem distorcer a cor
-uint32_t ajustar_brilho(uint32_t cor, float fator) {
-    uint8_t r = (cor >> 16) & 0xFF;  // Extrai o componente Vermelho (R)
-    uint8_t g = (cor >> 8) & 0xFF;   // Extrai o componente Verde (G)
-    uint8_t b = cor & 0xFF;          // Extrai o componente Azul (B)
-
-    // Aplica o fator de brilho corretamente para cada canal
-    r = (uint8_t)(r * fator);
-    g = (uint8_t)(g * fator);
-    b = (uint8_t)(b * fator);
-
-    // Reconstroi a cor reduzida
-    return (r << 16) | (g << 8) | b;
-}
-
-// Cores ajustadas dinamicamente
-uint32_t RED    = 0x00FF00;  // Alerta
-uint32_t GREEN  = 0xFF0000;  // Normal
-uint32_t YELLOW = 0xFFFF00;  // Pré-diabetes
-uint32_t BLUE   = 0x0000FF;  // Baixa Glicose em Jejum
-
-// Função para converter RGB em formato GRB (usado pelo WS2812)
-uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
-    return ((uint32_t)(g) << 16) | ((uint32_t)(r) << 8) | (uint32_t)(b);
-}
-
 // Define a cor da matriz
 void set_matrix_color(uint32_t color) {
     for (int i = 0; i < NUM_LEDS; i++) {
         ws2812_put_pixel(color);
     }
 }
+
+void set_matrix_brightness(uint32_t color, uint16_t adc_value) {
+    // Normaliza a leitura do ADC para um valor entre 0 e 255 (PWM simulado)
+    uint8_t intensidade = (adc_value * 20) / 4095;
+
+    // Extrai os componentes RGB da cor base
+    uint8_t r = (color >> 16) & 0xFF;
+    uint8_t g = (color >> 8) & 0xFF;
+    uint8_t b = color & 0xFF;
+
+    // Ajusta a intensidade proporcionalmente
+    r = (r * intensidade) / 255;
+    g = (g * intensidade) / 255;
+    b = (b * intensidade) / 255;
+
+    // Constrói a nova cor PWM ajustada
+    uint32_t cor_pwm = (r << 16) | (g << 8) | b;
+
+    // Aplica a nova cor PWM à matriz de LEDs
+    set_matrix_color(cor_pwm);
+}
+
+// Cores ajustadas dinamicamente para a matriz de LED's WS2812 (g r b)
+uint32_t RED    = 0x00FF00;  // Alerta
+uint32_t GREEN  = 0xFF0000;  // Normal
+uint32_t YELLOW = 0xFFFF00;  // Pré-diabetes
+uint32_t BLUE   = 0x0000FF;  // Baixa Glicose em Jejum
 
 // Aplicando uma média para suavizar a oscilação do ADC
 uint16_t filtrar_adc() {
@@ -174,7 +173,7 @@ void piscar_borda_com_buzzer_e_led(uint buzzer, uint led, uint frequencia, uint 
     for (uint i = 0; i < ciclos; i++) {
         // Liga o LED vermelho e a matriz de LEDs
         set_led_brightness(led, PWM_WRAP);
-        set_matrix_color(RED);  // Define a cor da matriz para vermelho durante o alerta
+        set_matrix_brightness(RED, 1000);  // Define a cor da matriz para vermelho durante o alerta
 
         // Toca o buzzer
         tone(buzzer, frequencia, duracao);
@@ -278,12 +277,6 @@ void setup_config(){
 
     init_matrix();
 
-    // Ajusta brilho das cores
-    RED    = ajustar_brilho(RED, BRILHO);
-    GREEN  = ajustar_brilho(GREEN, BRILHO);
-    YELLOW = ajustar_brilho(YELLOW, BRILHO);
-    BLUE   = ajustar_brilho(BLUE, BRILHO);
-
     gpio_set_irq_enabled_with_callback(BOTAO_A, GPIO_IRQ_EDGE_FALL, true, botao_callback);
     gpio_set_irq_enabled_with_callback(BOTAO_B, GPIO_IRQ_EDGE_FALL, true, botao_callback);
     gpio_set_irq_enabled_with_callback(JOYSTICK_PB, GPIO_IRQ_EDGE_FALL, true, botao_callback);
@@ -335,13 +328,11 @@ int main() {
                     set_led_brightness(LED_BLUE, 0);
                     set_led_brightness(LED_RED, leitura_adc);
                     set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_color(YELLOW);
+                    set_matrix_brightness(YELLOW, leitura_adc);
                 }
                 else if (leitura_adc >= 3870 || leitura_adc <= 575) {
                     set_led_brightness(LED_BLUE, 0);
                     set_led_brightness(LED_GREEN, 0);
-                    set_matrix_color(RED);
-                
                     // Sincroniza a borda, buzzer e LED vermelho piscando 2 vezes
                     piscar_borda_com_buzzer_e_led(BUZZER, LED_RED, 500, 250, 2, glicose_simulada);
                 }
@@ -350,7 +341,7 @@ int main() {
                     set_led_brightness(LED_BLUE, 0);
                     set_led_brightness(LED_RED, 0);
                     set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_color(GREEN);
+                    set_matrix_brightness(GREEN, leitura_adc);
                 }
 
                 // Limpa a tela antes de exibir um novo valor
@@ -384,22 +375,19 @@ int main() {
                     set_led_brightness(LED_BLUE, 0);
                     set_led_brightness(LED_RED, leitura_adc);
                     set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_color(YELLOW);
+                    set_matrix_brightness(YELLOW, leitura_adc);
                 } 
                 else if (leitura_adc >= 4078 || leitura_adc <= 16) {
                     set_led_brightness(LED_BLUE, 0);
-                    set_led_brightness(LED_GREEN, 0);
-                    set_matrix_color(RED);
-                                
+                    set_led_brightness(LED_GREEN, 0);                               
                     // Sincroniza a borda, buzzer e LED vermelho piscando 2 vezes
                     piscar_borda_com_buzzer_e_led(BUZZER, LED_RED, 500, 250, 2, glicose_simulada);
-                }
-                                            
+                }                                         
                 else {
                     set_led_brightness(LED_BLUE, 0);
                     set_led_brightness(LED_RED, 0);
                     set_led_brightness(LED_GREEN, leitura_adc);
-                    set_matrix_color(GREEN);
+                    set_matrix_brightness(GREEN, leitura_adc);
                 }
                 
                 // Limpa a tela antes de exibir um novo valor
