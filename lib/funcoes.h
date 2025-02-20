@@ -1,3 +1,8 @@
+/*
+O arquivo funcoes.h declara todas as funções e variáveis globais que são implementadas no funcoes.c e utilizadas no arquivo main biossensor.c
+*/
+
+
 #ifndef FUNCOES_H
 #define FUNCOES_H
 

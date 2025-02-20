@@ -1,3 +1,9 @@
+/*
+O arquivo font.h armazena uma tabela de fontes bitmap para exibição de caracteres no display OLED SSD1306.
+Aqui contém os bytes que representam cada caractere (números, letras e alguns símbolos) no formato 8x8 pixels.
+*/
+
+
 // Fontes para A-Z e 0-9. Os caracteres tem 8x8 pixels
 static uint8_t font[] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Nothing

@@ -1,3 +1,9 @@
+/*
+O arquivo ssd1306.c implementa todas as funções necessárias para controlar o display OLED SSD1306 via I2C.
+Este arquivo é responsável por enviar comandos e dados para o display OLED SSD1306, permitindo exibir gráficos, textos e desenhar formas geométricas na tela.
+*/
+
+
 #include "ssd1306.h"
 #include "font.h"
 

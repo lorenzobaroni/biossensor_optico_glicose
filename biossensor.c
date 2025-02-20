@@ -1,3 +1,10 @@
+/*
+O arquivo biossensor.c é o programa principal do seu projeto.
+Aqui está presente o código central que controla o fluxo da aplicação, organizando a lógica e chamando as funções necessárias para
+operar o biossensor, LEDs, buzzer e display OLED.
+*/
+
+
 #include "lib/funcoes.h"
 
 int main() {

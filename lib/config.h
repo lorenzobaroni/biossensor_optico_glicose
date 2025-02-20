@@ -1,3 +1,8 @@
+/*
+O arquivo config.h armazena todas as configurações globais do sistema, como pinos, endereços I2C, constantes e parâmetros utilizados em todo o código.
+*/
+
+
 #ifndef CONFIG_H
 #define CONFIG_H
 

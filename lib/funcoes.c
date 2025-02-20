@@ -1,6 +1,13 @@
+/*
+O Arquivo funcoes.c possui todas as funções principais do programa relacionadas com a manipulação do Display OLED, 
+da Matriz de Leds, Interrupções dos botõas A e B, PWM e ADC.
+A separação dessas funções aqui deixa o codigo modularizado, organizado e legível.
+*/
+
+
 #include "funcoes.h"
 
-// Definição das variáveis globais
+// Definição das variáveis globais --------------------------------------------------------------------------------------------------------------------------------
 ssd1306_t ssd;
 PIO pio = pio0;
 uint offset = 0;
@@ -13,6 +20,9 @@ const uint32_t debounce = 200;
 bool escolha_jejum = false;
 bool escolha_feita = false;
 bool voltar_menu = false;
+
+
+// Função de configurações basicas -------------------------------------------------------------------------------------------------------------------------------
 
 void setup_config(){ 
     i2c_init(I2C_PORT, 400 * 1000);
@@ -53,6 +63,8 @@ void setup_config(){
     gpio_set_irq_enabled_with_callback(JOYSTICK_PB, GPIO_IRQ_EDGE_FALL, true, botao_callback);
 }
 
+//Função para exibir o menu inicial --------------------------------------------------------------------------------------------------------------------------------
+
 void menu_inicial() {
     ssd1306_fill(&ssd, false);
     ssd1306_draw_string(&ssd, "Jejum: 8h", 25, 10);
@@ -61,6 +73,8 @@ void menu_inicial() {
     ssd1306_rect(&ssd, 0, 0, WIDTH - 1, HEIGHT - 1, true, false);
     ssd1306_send_data(&ssd);
 }
+
+// A seguir são as funções diretamente relacionadas com a Matriz de Leds ws2812 ------------------------------------------------------------------------------------
 
 // Inicializa a Matriz WS2812
 void init_matrix() {
@@ -110,44 +124,9 @@ uint32_t GREEN  = 0xFF0000;  // Normal
 uint32_t YELLOW = 0xFFFF00;  // Pré-diabetes
 uint32_t BLUE   = 0x0000FF;  // Baixa Glicose em Jejum
 
-// Aplicando uma média para suavizar a oscilação do ADC
-uint16_t filtrar_adc() {
-    uint32_t soma = 0;
-    for (int i = 0; i < NUM_AMOSTRAS; i++) {
-        soma += adc_read();
-        sleep_ms(10);  // Pequeno delay para estabilizar a leitura
-    }
-    return soma / NUM_AMOSTRAS;
-}
+//----------------------------------------------------------------------------------------------- Fim das Funções diretamente relacionadas com a Matriz de Leds ws2812
 
-void setup_pwm(uint pin) {
-    gpio_set_function(pin, GPIO_FUNC_PWM);
-    uint slice = pwm_gpio_to_slice_num(pin); 
-    pwm_set_wrap(slice, PWM_WRAP);
-    pwm_set_clkdiv(slice, 125.0); 
-    pwm_set_enabled(slice, true);
-}
-
-// Função para definir o brilho de um LED usando PWM
-void set_led_brightness(uint pin, uint16_t value) {
-    uint slice = pwm_gpio_to_slice_num(pin);
-    uint channel = pwm_gpio_to_channel(pin);
-    pwm_set_chan_level(slice, channel, value);
-}
-
-// Função para gerar tons no buzzer
-void tone(uint buzzer, uint frequencia, uint duracao) {
-    uint32_t periodo = 1000000 / frequencia; 
-    uint32_t meio_periodo = periodo / 2;    
-    uint32_t ciclos = frequencia * duracao / 1000;
-
-    for (uint32_t i = 0; i < ciclos; i++) {
-        gpio_put(buzzer, 1); 
-        sleep_us(meio_periodo);
-        gpio_put(buzzer, 0); 
-        sleep_us(meio_periodo);
-    }
-}
+// A seguir são as funções diretamente relacionadas com o Display Oled ssd1306 ---------------------------------------------------------------------------------------
 
 void glicose_alerta(int glicose){
     // 🔹 Redesenha a mensagem de alerta corretamente
@@ -180,6 +159,124 @@ void glicose_alerta_jejum(int glicose){
         ssd1306_draw_string(&ssd, "Diabetes!", 10, 50);
     }
 }
+
+void desenhar_coracao() {
+    int x = WIDTH - 25;  // Posição X no canto superior direito
+    int y = 12;           // Posição Y na parte superior
+
+    // Matriz do coração (10x9 pixels) - 1 = pixel ligado, 0 = pixel apagado
+    const uint8_t coracao[11][12] = {
+        { 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0 },  
+        { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },  
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  
+        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  
+        { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 },  
+        { 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 },  
+        { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0 },  
+        { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0 }   
+    };
+
+    // Desenha o coração no display
+    for (int i = 0; i < 11; i++) {
+        for (int j = 0; j < 12; j++) {
+            if (coracao[i][j]) {
+                ssd1306_pixel(&ssd, x + j, y + i, true);
+            }
+        }
+    }
+}
+
+void linhas_display(){
+    // Desenha uma linha horizontal no meio do display (altura = 32)
+    ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
+    ssd1306_draw_line(&ssd, 0, 33, WIDTH - 1, 33, true);
+    ssd1306_draw_line(&ssd, 90, 0, 90, HEIGHT / 2, true);
+    ssd1306_draw_line(&ssd, 91, 0, 91, HEIGHT / 2, true);
+}
+
+void texto_glicose(int glicose_simulada){
+    char buffer[32];
+    ssd1306_draw_string(&ssd, "Glicose: ", 10, 10);
+    sprintf(buffer, "%d mg/dL", glicose_simulada);
+    ssd1306_draw_string(&ssd, buffer, 10, 20);
+}
+
+void desenha_borda(){
+    for (int i = 0; i < border_size; i++) {
+        ssd1306_rect(&ssd, i, i, WIDTH - (2 * i), HEIGHT - (2 * i), true, false);
+    }
+}
+
+//----------------------------------------------------------------------------------------------- Fim das Funções diretamente relacionadas com o Display Oled ssd1306
+
+// A seguir são as funções diretamente relacionadas com PWM E ADC ---------------------------------------------------------------------------------------------------
+
+// Aplicando uma média para suavizar a oscilação do ADC
+uint16_t filtrar_adc() {
+    uint32_t soma = 0;
+    for (int i = 0; i < NUM_AMOSTRAS; i++) {
+        soma += adc_read();
+        sleep_ms(10);  // Pequeno delay para estabilizar a leitura
+    }
+    return soma / NUM_AMOSTRAS;
+}
+
+void setup_pwm(uint pin) {
+    gpio_set_function(pin, GPIO_FUNC_PWM);
+    uint slice = pwm_gpio_to_slice_num(pin); 
+    pwm_set_wrap(slice, PWM_WRAP);
+    pwm_set_clkdiv(slice, 125.0); 
+    pwm_set_enabled(slice, true);
+}
+
+// Função para definir o brilho de um LED usando PWM
+void set_led_brightness(uint pin, uint16_t value) {
+    uint slice = pwm_gpio_to_slice_num(pin);
+    uint channel = pwm_gpio_to_channel(pin);
+    pwm_set_chan_level(slice, channel, value);
+}
+
+void leds_pre_diabetes(uint16_t leitura_adc){
+    set_led_brightness(LED_BLUE, 0);
+    set_led_brightness(LED_RED, leitura_adc);
+    set_led_brightness(LED_GREEN, leitura_adc);
+    set_matrix_brightness(YELLOW, leitura_adc);
+}
+
+void leds_atencao(int glicose_simulada){
+    set_led_brightness(LED_BLUE, 0);
+    set_led_brightness(LED_GREEN, 0);                               
+    // Sincroniza a borda, buzzer e LED vermelho piscando 2 vezes
+    piscar_borda_com_buzzer_e_led(BUZZER, LED_RED, 500, 250, 2, glicose_simulada);
+}
+
+void leds_nivel_normal(uint16_t leitura_adc){
+    set_led_brightness(LED_BLUE, 0);
+    set_led_brightness(LED_RED, 0);
+    set_led_brightness(LED_GREEN, leitura_adc);
+    set_matrix_brightness(GREEN, leitura_adc);
+}
+
+//------------------------------------------------------------------------------------------------------------- Fim das Funções diretamente relacionadas com PWM e ADC
+
+
+// Função para gerar tons no buzzer-----------------------------------------------------------------------------------------------------------------------------------
+
+void tone(uint buzzer, uint frequencia, uint duracao) {
+    uint32_t periodo = 1000000 / frequencia; 
+    uint32_t meio_periodo = periodo / 2;    
+    uint32_t ciclos = frequencia * duracao / 1000;
+
+    for (uint32_t i = 0; i < ciclos; i++) {
+        gpio_put(buzzer, 1); 
+        sleep_us(meio_periodo);
+        gpio_put(buzzer, 0); 
+        sleep_us(meio_periodo);
+    }
+}
+
+// Função para piscar ao mesmo tempo o Led Rgb, a Matriz de leds, o buzzer e a borda do display ----------------------------------------------------------------------
 
 void piscar_borda_com_buzzer_e_led(uint buzzer, uint led, uint frequencia, uint duracao, uint ciclos, int glicose) {
     for (uint i = 0; i < ciclos; i++) {
@@ -226,7 +323,8 @@ void piscar_borda_com_buzzer_e_led(uint buzzer, uint led, uint frequencia, uint 
     }
 }
 
-// Função de interrupção para os botões
+// Função de interrupção para os botões A e B ---------------------------------------------------------------------------------------------------------------------
+
 void botao_callback(uint gpio, uint32_t eventos) {
     uint32_t tempo_atual = to_ms_since_boot(get_absolute_time());
 
@@ -243,74 +341,5 @@ void botao_callback(uint gpio, uint32_t eventos) {
     if (gpio == JOYSTICK_PB && (tempo_atual - ultimo_tempo_joy > debounce)) {
         ultimo_tempo_joy = tempo_atual;
         voltar_menu = true;  // Sinaliza que deve voltar ao menu
-    }
-}
-
-void desenhar_coracao() {
-    int x = WIDTH - 25;  // Posição X no canto superior direito
-    int y = 12;           // Posição Y na parte superior
-
-    // Matriz do coração (10x9 pixels) - 1 = pixel ligado, 0 = pixel apagado
-    const uint8_t coracao[11][12] = {
-        { 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0 },  
-        { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },  
-        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  
-        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  
-        { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 },  
-        { 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 },  
-        { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0 },  
-        { 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 },
-        { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0 }   
-    };
-
-    // Desenha o coração no display
-    for (int i = 0; i < 11; i++) {
-        for (int j = 0; j < 12; j++) {
-            if (coracao[i][j]) {
-                ssd1306_pixel(&ssd, x + j, y + i, true);
-            }
-        }
-    }
-}
-
-void linhas_display(){
-    // Desenha uma linha horizontal no meio do display (altura = 32)
-    ssd1306_draw_line(&ssd, 0, 32, WIDTH - 1, 32, true);
-    ssd1306_draw_line(&ssd, 0, 33, WIDTH - 1, 33, true);
-    ssd1306_draw_line(&ssd, 90, 0, 90, HEIGHT / 2, true);
-    ssd1306_draw_line(&ssd, 91, 0, 91, HEIGHT / 2, true);
-}
-
-void leds_pre_diabetes(uint16_t leitura_adc){
-    set_led_brightness(LED_BLUE, 0);
-    set_led_brightness(LED_RED, leitura_adc);
-    set_led_brightness(LED_GREEN, leitura_adc);
-    set_matrix_brightness(YELLOW, leitura_adc);
-}
-
-void leds_atencao(int glicose_simulada){
-    set_led_brightness(LED_BLUE, 0);
-    set_led_brightness(LED_GREEN, 0);                               
-    // Sincroniza a borda, buzzer e LED vermelho piscando 2 vezes
-    piscar_borda_com_buzzer_e_led(BUZZER, LED_RED, 500, 250, 2, glicose_simulada);
-}
-
-void leds_nivel_normal(uint16_t leitura_adc){
-    set_led_brightness(LED_BLUE, 0);
-    set_led_brightness(LED_RED, 0);
-    set_led_brightness(LED_GREEN, leitura_adc);
-    set_matrix_brightness(GREEN, leitura_adc);
-}
-
-void texto_glicose(int glicose_simulada){
-    char buffer[32];
-    ssd1306_draw_string(&ssd, "Glicose: ", 10, 10);
-    sprintf(buffer, "%d mg/dL", glicose_simulada);
-    ssd1306_draw_string(&ssd, buffer, 10, 20);
-}
-
-void desenha_borda(){
-    for (int i = 0; i < border_size; i++) {
-        ssd1306_rect(&ssd, i, i, WIDTH - (2 * i), HEIGHT - (2 * i), true, false);
     }
 }

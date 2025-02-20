@@ -1,3 +1,9 @@
+/*
+O arquivo ssd1306.h declara as funções e estruturas necessárias para controlar o display OLED SSD1306 via I2C.
+Este arquivo atua como um cabeçalho para o arquivo ssd1306.c, permitindo que outras partes do código utilizem as funções de manipulação do display.
+*/
+
+
 #ifndef SSD1306_H
 #define SSD1306_H
 
