@@ -37,68 +37,34 @@ int main() {
             printf("ADC: %d | Tensão: %.2fV | Glicose Simulada: %d mg/dL\n", leitura_adc, tensao, glicose_simulada);
 
             // Se escolheu "Sim (A)" 
-            if(escolha_jejum){               
-                // Define o brilho do LED azul baseado na posição Y do joystick
-                if ((leitura_adc > 2180 && leitura_adc < 3870)) {
-                    leds_pre_diabetes(leitura_adc);
-
-                } else if (leitura_adc >= 3870 || leitura_adc <= 575) {
-                    leds_atencao(glicose_simulada);
-
-                } else {     
-                    leds_nivel_normal(leitura_adc);
-                }
-
-                // Limpa a tela antes de exibir um novo valor
-                ssd1306_rect(&ssd, 10, 10, 115, 50, false, true); // Limpa apenas a área do texto
-
-                // Buffer para armazenar o texto
-                texto_glicose(glicose_simulada);
-
-                desenhar_coracao();
-
-                linhas_display();
-
-                glicose_alerta_jejum(glicose_simulada);
-
-                desenha_borda();
-                
-                ssd1306_send_data(&ssd);
-
-                sleep_ms(50);
-            } 
-            // Se escolheu "Não (B)" 
-            else {                               
-                // Define o brilho do LED azul baseado na posição Y do joystick
-                if ((leitura_adc > 2180 && leitura_adc < 4078)) {
-                    leds_pre_diabetes(leitura_adc);
-
-                } else if (leitura_adc >= 4078 || leitura_adc <= 16) {
-                    leds_atencao(glicose_simulada);
-
-                } else {
-                    leds_nivel_normal(leitura_adc); 
-                }
-                
-                // Limpa a tela antes de exibir um novo valor
-                ssd1306_rect(&ssd, 10, 10, 115, 50, false, true); // Limpa apenas a área do texto
-
-                // Buffer para armazenar o texto
-                texto_glicose(glicose_simulada);
-
-                desenhar_coracao();
-
-                linhas_display();
-
-                glicose_alerta(glicose_simulada);
-
-                desenha_borda();
-
-                ssd1306_send_data(&ssd);
-
-                sleep_ms(50);
+            // Define os LEDs conforme a faixa de glicose
+            if ((leitura_adc > 2180 && leitura_adc < (escolha_jejum ? 3870 : 4078))) {
+                leds_pre_diabetes(leitura_adc);
+            } else if (leitura_adc >= (escolha_jejum ? 3870 : 4078) || leitura_adc <= (escolha_jejum ? 575 : 16)) {
+                leds_atencao(glicose_simulada);
+            } else {
+                leds_nivel_normal(leitura_adc);
             }
-        }
+
+            // Limpa a tela antes de exibir um novo valor
+            ssd1306_rect(&ssd, 10, 10, 115, 50, false, true); // Limpa apenas a área do texto
+            
+            // Exibir informações na tela
+            texto_glicose(glicose_simulada);
+            desenhar_coracao();
+            linhas_display();
+
+            if (escolha_jejum) {
+                glicose_alerta_jejum(glicose_simulada);
+            } else {
+                glicose_alerta(glicose_simulada);
+            }
+
+            desenha_borda();  
+            ssd1306_send_data(&ssd);
+
+            sleep_ms(50);
+        } 
     }
     return 0;
 }
