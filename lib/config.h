@@ -1,11 +1,23 @@
 /*
 O arquivo config.h armazena todas as configurações globais do sistema, como pinos, endereços I2C, constantes e parâmetros utilizados em todo o código.
+Este arquivo tambem adiciona o modo de Depuração(DEBUG).
+Habilita/desabilita mensagens de debug para facilitar o desenvolvimento e manutenções.
 */
 
 
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Habilita ou desabilita o modo de depuração
+#define DEBUG 1  // Defina como 0 para desativar prints
+
+#if DEBUG
+    #define DEBUG_PRINT(...) printf(__VA_ARGS__)
+#else
+    #define DEBUG_PRINT(...)
+#endif
+
+// Configuração dos pinos do biossensor e botões
 #define BIOSSENSOR_OPTICO 26 
 #define JOYSTICK_PB 22
        

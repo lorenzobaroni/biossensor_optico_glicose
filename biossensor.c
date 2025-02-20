@@ -41,7 +41,7 @@ int main() {
                 glicose_simulada = (int)((tensao * (201.0 - 70.0) / 3.3) + 70);
             }
 
-            printf("ADC: %d | Tensão: %.2fV | Glicose Simulada: %d mg/dL\n", leitura_adc, tensao, glicose_simulada);
+            DEBUG_PRINT("ADC: %d | Tensão: %.2fV | Glicose Simulada: %d mg/dL\n", leitura_adc, tensao, glicose_simulada);
 
             // Se escolheu "Sim (A)" 
             // Define os LEDs conforme a faixa de glicose
