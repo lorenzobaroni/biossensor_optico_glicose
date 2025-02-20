@@ -7,11 +7,13 @@ void ssd1306_init(ssd1306_t *ssd, uint8_t width, uint8_t height, bool external_v
   ssd->pages = height / 8U;
   ssd->address = address;
   ssd->i2c_port = i2c;
+  ssd->external_vcc = external_vcc;
   ssd->bufsize = ssd->pages * ssd->width + 1;
   ssd->ram_buffer = calloc(ssd->bufsize, sizeof(uint8_t));
   ssd->ram_buffer[0] = 0x40;
   ssd->port_buffer[0] = 0x80;
 }
+
 
 void ssd1306_config(ssd1306_t *ssd) {
   ssd1306_command(ssd, SET_DISP | 0x00);

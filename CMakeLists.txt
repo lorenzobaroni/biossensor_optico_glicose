@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(biossensor biossensor.c lib/ssd1306.c)
+add_executable(biossensor biossensor.c lib/ssd1306.c lib/funcoes.c)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lib)
 pico_generate_pio_header(biossensor ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
