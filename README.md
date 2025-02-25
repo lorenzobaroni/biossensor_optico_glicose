@@ -26,7 +26,7 @@ O vídeo com a execução da simulação pode ser acessado em:
 ## 🏗 Estrutura do Projeto
 
 ```
-📂 biossensor_project
+📂 biossensor_optico_glicose
 ├── 📂 lib
 │   ├── funcoes.h       # Cabeçalho das funções
 │   ├── funcoes.c       # Implementação das funções do sistema
