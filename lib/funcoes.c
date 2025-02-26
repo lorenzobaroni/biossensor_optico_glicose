@@ -122,7 +122,6 @@ void set_matrix_brightness(uint32_t color, uint16_t adc_value) {
 uint32_t RED    = 0x00FF00;  // Alerta
 uint32_t GREEN  = 0xFF0000;  // Normal
 uint32_t YELLOW = 0xFFFF00;  // Pré-diabetes
-uint32_t BLUE   = 0x0000FF;  // Baixa Glicose em Jejum
 
 //----------------------------------------------------------------------------------------------- Fim das Funções diretamente relacionadas com a Matriz de Leds ws2812
 
