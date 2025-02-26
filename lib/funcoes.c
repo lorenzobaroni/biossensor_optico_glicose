@@ -322,7 +322,7 @@ void piscar_borda_com_buzzer_e_led(uint buzzer, uint led, uint frequencia, uint 
     }
 }
 
-// Função de interrupção para os botões A e B ---------------------------------------------------------------------------------------------------------------------
+// Função de interrupção para os botões A, B e JOYSTICK_PB--------------------------------------------------------------------------------------------------------------
 
 void botao_callback(uint gpio, uint32_t eventos) {
     uint32_t tempo_atual = to_ms_since_boot(get_absolute_time());
