@@ -5,7 +5,7 @@ Este projeto consiste em um **sistema embarcado para monitoramento de glicose**,
 
 ## 🎥 Demonstração
 O vídeo com a execução da simulação pode ser acessado em:
-[🔗 Link para o vídeo]()
+[🔗 Link para o vídeo](https://www.youtube.com/watch?v=zqj2er6IKrg&ab_channel=LorenzoBaroni)
 
 ## 🎯 Objetivos
 - Criar um sistema de monitoramento embarcado de glicose.
